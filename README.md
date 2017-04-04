@@ -1,6 +1,6 @@
 This is a simple IRC bot written in Python3
 
-Usage: bot <hostname> <port> <channel> <secret-phrase>
+Usage: bot hostname port channel secret-phrase
 
 Example:
 python3 bot.py chat.freenode.net 6667 Windows95 iamhere
