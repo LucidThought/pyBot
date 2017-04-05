@@ -54,10 +54,7 @@ class PyBot:
     print("DEBUG --> Changing channel")     
 
   def generateRandomName(self):
-    randomName = "Andrew" + random.choice(string.digits)
-    randomName += random.choice(string.digits)
-    randomName += random.choice(string.digits)
-    randomName += random.choice(string.digits)
+    randomName = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
     return randomName
 
 #Main
