@@ -6,7 +6,6 @@ import random
 import string
 
 class PyBot:
-  
   #PyBot object constructor 
   def __init__(self,host,port,channel,secret,s):
 
@@ -46,6 +45,7 @@ class PyBot:
         self.examinePrivmsg(user,message)
 
   def examinePrivmsg(self,user,message):
+# This needs to be updated to store the controller's information and accept control commands from the controller only
     if message == secret:
       print("DEBUG --> Controller said the secret! Control Mode enabled, read to troll and annoy")
       self.control = 1
