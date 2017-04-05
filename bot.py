@@ -18,7 +18,7 @@ class PyBot:
     self.nick = self.generateRandomName()
     self.controlMode = 0 #default 0 = bot not being controller
 
-    try:
+    try: # NOTE: Should put this in some kind of loop so the bot can retry, generateRandomName() should be called from inside of the loop
       self.s = s.connect((host,int(port)))
       s.send(bytes("NICK " + self.nick + "\n", "UTF-8"))
       s.send(bytes("USER " +self.nick+" "+self.nick+" "+self.nick+ " " + self.nick+ "\n","UTF-8"))
