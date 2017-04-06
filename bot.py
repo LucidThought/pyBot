@@ -62,6 +62,7 @@ class PyBot:
       self.controllerName = user
     
     elif self.controlMode == 1 and user == self.controllerName: 
+# NOTE --> The 'attack' and 'move' messages will be followed by who to attack and where to move to, so the tests will have to be .startswith()
       if message == "status":
         print("DEBUG --> status requested by controller")
       elif message == "attack":
@@ -77,9 +78,9 @@ class PyBot:
     print("DEBUG --> Changing channel")     
 
   def generateRandomName(self):
-    randomName = "Bot" + random.choice(string.digits) + random.choice(string.digits)
-    #program halts at this line of code.
-    #randomName = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    #randomName = "Bot" + random.choice(string.digits) + random.choice(string.digits)
+    #UPDATE --> The following line is fixed:
+    randomName = "".join(random.choice(string.ascii_uppercase + string.digits) for i in range(8))
     return randomName
 
 #Main
