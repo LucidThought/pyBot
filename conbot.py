@@ -42,12 +42,14 @@ class PyBotCon:
         self.identifyBots(self.secret,self.channel)
         print(srt(len(self.botList))+" bots found: " + str(self.botList))
       elif(command.startswith("attack")):
+        # NOTE --> Need to create a function for sending the attack command
         print("Call attack function here")
       elif(command.startswith("move")):
         chanCommand = command.split()
         self.changeChannel(self.channel, chanCommand[1], chanCommand[2], chanCommand[3])
         # Need to call a move channel function for the conbot, will write later
       elif(command=="quit"):
+        # NOTE --> Might need to actually disconnect form the IRC server before exiting the program, will have to look into this
         sys.exit("Command Bot Disconnected")
       elif(comand=="shutdown"):
         # Need to create a function for sending shutdown message to the channel
