@@ -23,7 +23,7 @@ class PyBotCon:
     self.port = port
     self.channel = channel
     self.secret = secret
-    self.nick = "MasterOfDisaster"
+    self.nick = self.generateRandomName()
     self.controlMode = 0 #default 0 = bot not being controller
 
     try: # NOTE: Should put this in some kind of loop so the bot can retry, generateRandomName() should be called from inside of the loop
@@ -33,6 +33,7 @@ class PyBotCon:
     except:
       print("unable to connect to irc server")
     s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
+#    self.listen()
 
   def conMain(self):
     while(True):
@@ -52,6 +53,7 @@ class PyBotCon:
         # NOTE --> Might need to actually disconnect form the IRC server before exiting the program, will have to look into this
         sys.exit("Command Bot Disconnected")
       elif(comand=="shutdown"):
+        sys.exit("Not Iplemented")
         # Need to create a function for sending shutdown message to the channel
 
   def listen(self):
@@ -86,12 +88,17 @@ class PyBotCon:
     self.s.send(bytes("PRIVMSG " + channel + " " + secret + "\n")) # Send 'hello' message for bots to identify themselves
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
     time.sleep(6)
-    for(i in range(10)): # NOTE --> I'm not sure how I should be listening for bot replies, this will need to be adjusted
+    for i in range(10): 
+# NOTE --> I'm not sure how I should be listening for bot replies, this will need to be adjusted
       data = self.s.recv(4096).decode("UTF-8")
       data = data.strip("\r\n")
       if(data.find("PRIVMSG {} :".format(self.nick))!=-1 and data.split("PRIVMSG",1)[1].split(":",1)[1]=="YOURS"): # NOTE --> The response message that we're expecting from bots is "YOURS"
         temp = data.split("!",1)[0][1:] # Finds name of the bot reply
         self.botList.append(temp[0][1:]) # Adds the name of the bot reply to botList
+
+  def generateRandomName(self):
+    randomName = "".join(random.choice(string.ascii_uppercase + string.digits) for i in range(8))
+    return randomName
         
 
 #Main
@@ -104,7 +111,7 @@ if __name__ == '__main__':
     secret = sys.argv[4]
   else:
     print("Incorrect number of arguments")
-    sys.exit("Usage: bot <hostname> <port> <channel> <secret-phrase>")
+    sys.exit("Usage: conbot.py <hostname> <port> <channel> <secret-phrase>")
 
   s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
   conBot = PyBotCon(host,port,channel,secret,s) #Create an instance of the bot 

@@ -75,7 +75,7 @@ class PyBot:
       print("DEBUG --> Controller said the secret! Control Mode enabled, at your command troll")
       self.controlMode = 1
       self.controllerName = senderNick
-      self.s.send(bytes("PRIVMSG " + self.controllerName + " YOURS\r\n"))
+      self.s.send(bytes("PRIVMSG " + self.controllerName + " YOURS"))
 
     #If controlMode is ennabled, and message sender private/or public enters the command, the bot will respond
     elif self.controlMode == 1 and senderNick == self.controllerName: 
