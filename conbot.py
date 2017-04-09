@@ -129,26 +129,31 @@ class PyBotCon:
     while datetime.now() < endLoop:
       read, _, _ = select.select([self.ircsock],[],[],5)
       if self.ircsock in read:
-        data = self.ircsock.recv(2048).decode("UTF-8")
+        data = self.ircsock.recv(4096).decode("UTF-8")
+        print("DEBUG3")
         data = data.strip("\n\r")
         dataLen = len(data.split())
+        #botCount = data.count("DOWN")
         if(data.split()[1]=="PRIVMSG"):
           temp = data.split()[0].split(":")[1].split("!")[0] # Finds name of the bot reply
-#          print("DEBUG --> Bot name found: " + temp)
+#         print("DEBUG --> Bot name found: " + temp)
           shutdownList.append([temp,data.split("PRIVMSG",1)[1].split(":",1)[1]]) # Adds the name of the bot reply to botList
         elif dataLen == 2 and data.split()[0] == "PING":
 #          print("DEBUG --> data recieved: PING REQUEST")
           self.ping()
+        else:
+          break
     successCount = 0
     failureCount = 0
     for result in shutdownList:
       print(str(result[0]) + ": shutting down")
       successCount+=1
     print("Total: "+str(successCount)+" bots shut down")
+    #print("Total: "+str(botCount)+" bots shut down")
 
   def changeChannel(self,channel,newServer, newPort, newChannel):
     self.ircsock.send(bytes("PRIVMSG " + channel + " :" + "move " + newServer + " " + newPort + " " + newChannel + "\n\r","UTF-8"))
-    print(str(len(self.botList)) + " bots have moved to: " + newserver + "/" + newPort + " #" + newChannel + "\n\r")
+    print(str(len(self.botList)) + " bots have moved to: " + newServer + "/" + newPort + " #" + newChannel + "\n\r")
 
   def identifyBots(self):
     # Send 'secret' message for bots to identify themselves
@@ -163,6 +168,7 @@ class PyBotCon:
       if self.ircsock in read:
         data = self.ircsock.recv(4096).decode("UTF-8")
         data = data.strip("\n\r")
+        #print("DEBUG --> data: " + data)
         dataLen = len(data.split())
         if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("BotName$$: ")):
           temp = data.split("PRIVMSG",1)[1].split(":",1)[1] # Finds name of the bot reply
