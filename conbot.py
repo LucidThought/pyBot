@@ -129,23 +129,24 @@ class PyBotCon:
     self.ircsock.send(bytes("PRIVMSG " + self.channel + " " + self.secret + "\n","UTF-8")) 
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
 #    self.ircsock.setblocking(0)
-    time.sleep(5)
+#    time.sleep(5)
     period = timedelta(seconds=5) 
     endLoop = datetime.now() + period
 #    print("DEBUG --> readable socket list: " + str(read))
     while datetime.now() < endLoop:
 # NOTE --> I'm not sure how I should be listening for bot replies, this will need to be adjusted
       read, _, _ = select.select([self.ircsock],[],[],5)
-      data = self.ircsock.recv(2048).decode("UTF-8")
-      data = data.strip("\n\r")
-      dataLen = len(data.split())
-      if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("BotName$$: ")): # NOTE --> The response message that we're expecting from bots is "YOURS"
-        temp = data.split("PRIVMSG",1)[1].split(":",1)[1] # Finds name of the bot reply
-        print("DEBUG --> Bot name found:" + temp)
-        self.botList.append(temp[11:]) # Adds the name of the bot reply to botList
-      elif dataLen == 2 and data.split()[0] == "PING":
-        print("DEBUG --> data recieved: PING REQUEST")
-        self.ping()
+      if self.ircsock in read:
+        data = self.ircsock.recv(2048).decode("UTF-8")
+        data = data.strip("\n\r")
+        dataLen = len(data.split())
+        if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("BotName$$: ")): # NOTE --> The response message that we're expecting from bots is "YOURS"
+          temp = data.split("PRIVMSG",1)[1].split(":",1)[1] # Finds name of the bot reply
+          print("DEBUG --> Bot name found:" + temp)
+          self.botList.append(temp[11:]) # Adds the name of the bot reply to botList
+        elif dataLen == 2 and data.split()[0] == "PING":
+          print("DEBUG --> data recieved: PING REQUEST")
+          self.ping()
     return
 
 
