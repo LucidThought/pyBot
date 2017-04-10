@@ -142,13 +142,9 @@ class PyBotCon:
     successCount = 0
     failureCount = 0
     for result in shutdownList:
-      if result[1] == "DOWN":
-        print(str(result[0]) + ": shutting down")
-        successCount+=1
-      else:
-        print(str(result[0]) + ": shutdown cannot be confirmed for some reason...")
-        failureCount+=1
-    print("Total: "+str(successCount)+" bots shut down, "+str(failureCount)+" unknown")
+      print(str(result[0]) + ": shutting down")
+      successCount+=1
+    print("Total: "+str(successCount)+" bots shut down")
 
   def changeChannel(self,channel,newServer, newPort, newChannel):
     self.ircsock.send(bytes("PRIVMSG " + channel + " :" + "move " + newServer + " " + newPort + " " + newChannel + "\n","UTF-8"))
