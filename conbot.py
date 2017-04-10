@@ -48,7 +48,7 @@ class PyBotCon:
     return randomName
 
   def joinChan(self):
-    self.ircsock.send(bytes("JOIN "+self.channel+"\n", "UTF-8"))
+    self.ircsock.send(bytes("JOIN "+self.channel+"\n\r", "UTF-8"))
 
   def conMain(self):
     print("Connected with nick: "+self.nick)
@@ -118,7 +118,7 @@ class PyBotCon:
     print("Total: "+str(successCount)+" successful, "+str(failureCount)+" unsuccessful, "+str(unknownCount)+" unknown")
 
   def ping(self):
-    self.ircsock.send(bytes("PONG :pingis\n","UTF-8"))
+    self.ircsock.send(bytes("PONG :pingis\n\r","UTF-8"))
 
   def shutdownCommand(self):
     self.ircsock.send(bytes("PRIVMSG " + self.channel + " :shutdown\n\r","UTF-8"))
