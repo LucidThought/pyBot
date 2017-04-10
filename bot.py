@@ -82,9 +82,6 @@ class PyBot:
 #        print("DEBUG --> move requested by controller")      #NOTE for later #should we check if the argument has a hash tag or not?
         self.changeServer(senderMessage)
 
-      elif senderMessage == "quit": # NOTE --> DO NOTHING HERE, YOU'LL NEVER SEE THIS MESSAGE
-#        print("DEBUG --> quit requested by controller")
-
       elif senderMessage == "shutdown":
 #        print("DEBUG --> shutdown requested by controller")
         outMessage = "DOWN"

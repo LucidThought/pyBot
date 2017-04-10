@@ -165,13 +165,13 @@ class PyBotCon:
     while datetime.now() < endLoop:
       read, _, _ = select.select([self.ircsock],[],[],5)
       if self.ircsock in read:
-        data = self.ircsock.recv(2048).decode("UTF-8")
+        data = self.ircsock.recv(4096).decode("UTF-8")
         data = data.strip("\n\r")
         dataLen = len(data.split())
         if(data.split()[1]=="PRIVMSG" and data.split("PRIVMSG",1)[1].split(":",1)[1].startswith("BotName$$: ")):
           temp = data.split("PRIVMSG",1)[1].split(":",1)[1] # Finds name of the bot reply
 #          print("DEBUG --> Bot name found:" + temp[11:])
-          self.botList.append(temp[11:]) # Adds the name of the bot reply to botList
+          self.botList.append(temp[11:19]) # Adds the name of the bot reply to botList
         elif dataLen == 2 and data.split()[0] == "PING":
 #          print("DEBUG --> data recieved: PING REQUEST")
           self.ping()
