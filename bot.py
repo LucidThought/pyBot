@@ -74,10 +74,7 @@ class PyBot:
       self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8"))
 
     elif senderNick == self.controllerName: 
-      if senderMessage == "status":
-        
-
-      elif senderMessage.split()[0] == "attack":
+      if senderMessage.split()[0] == "attack":
 #        print("DEBUG --> attack requested by controller")
         self.attackServer(senderMessage)
 
