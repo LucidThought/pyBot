@@ -51,8 +51,9 @@ class PyBotCon:
     self.ircsock.send(bytes("JOIN "+self.channel+"\n", "UTF-8"))
 
   def conMain(self):
+    print("Connected with nick: "+self.nick)
     while(True):
-'''
+      '''
       read, _, _ = select.select([self.ircsock],[],[],2)
       if self.ircsock in read:
         data = self.ircsock.recv(1024).decode("UTF-8")
@@ -61,7 +62,7 @@ class PyBotCon:
         if dataLen == 2 and data.split()[0] == "PING":
 #          print("DEBUG --> data recieved: PING REQUEST")
           self.ping()
-'''
+       '''
       print("command> ",end='')
       command = input()
       if(command == "status"):

